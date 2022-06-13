@@ -82,10 +82,6 @@ build-be:
     key: "${CI_JOB_NAME}"
     paths:
       - ${LOCAL_M2_REPOS}
-  artifacts:
-    expire_in: 2h
-    paths:
-      - ${LOCAL_M2_REPOS}
 
 build-fe:
   stage: build
@@ -101,12 +97,6 @@ build-fe:
     - yarn
     - pwd && ls -a
     - echo "compile end"
-  artifacts:
-    # 生成的产物2小时后自动销毁
-    expire_in: 2 h
-    # 缓存作业产物
-    paths:
-      - ${PROJECT_FE_DIR_NODE_MODULES}
   cache:
     key: "${CI_JOB_NAME}"
     paths:
@@ -129,13 +119,8 @@ sonarqube-check-java:
     - mvn -s settings.xml $MAVEN_CMD_VERSION package dependency-check:aggregate -Dsonar.projectName=${SONAR_BE_PROJECT_KEY} -Dsonar.projectKey=${SONAR_BE_PROJECT_KEY}
     - mvn -s settings.xml $MAVEN_CMD_VERSION verify sonar:sonar -Dsonar.qualitygate.wait=true -Dsonar.projectName=${SONAR_BE_PROJECT_KEY} -Dsonar.projectKey=${SONAR_BE_PROJECT_KEY}
   allow_failure: true
-  artifacts:
-    expire_in: 2h
-    paths:
-      - ${LOCAL_M2_REPOS}
   needs:
     - job: "build-be"
-      artifacts: true
 
 sonarqube-check-js:
   tags:
@@ -157,13 +142,6 @@ sonarqube-check-js:
   allow_failure: true
   needs:
     - job: "build-fe"
-      artifacts: true
-  artifacts:
-    # 生成的产物2小时后自动销毁
-    expire_in: 2 h
-    # 缓存作业产物
-    paths:
-      - ${PROJECT_FE_DIR_NODE_MODULES}
 
 java-package:
   variables:
@@ -187,7 +165,6 @@ java-package:
       - "**/target/*.jar"
   needs:
     - job: "sonarqube-check-java"
-      artifacts: true
   cache:
     key: "${CI_JOB_NAME}"
     paths:
@@ -206,6 +183,7 @@ npm-package:
     - echo "package start"
     - cd ${PROJECT_FE_DIR}
     - pwd && ls -a
+    - yarn
     - yarn build:prod
     - pwd && ls -a
     - echo "package start end"
@@ -217,7 +195,6 @@ npm-package:
       - ${PROJECT_FE_DIR_DIST}
   needs:
     - job: "sonarqube-check-js"
-      artifacts: true
 
 #image-upload-saber-db:
 #  extends: .image-upload
