@@ -30,7 +30,7 @@ variables:
   SONAR_CACHE: .sonar/cache
   PROJECT_NAME: "ruoyi-cloud"
   #管理项目k8s yaml的项目编号
-  MANIFEST_PROJECT_ID:
+  MANIFEST_PROJECT_ID: 0
   #版本,docker image,jar
   VERSION: $CI_COMMIT_SHORT_SHA
   MAVEN_CMD_VERSION: -Dsha1=-$VERSION
