@@ -6,14 +6,17 @@
 
     <groupId>com.ruoyi</groupId>
     <artifactId>ruoyi</artifactId>
-    <version>3.5.0</version>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
 
     <name>ruoyi</name>
     <url>http://www.ruoyi.vip</url>
     <description>若依微服务系统</description>
 
     <properties>
-        <ruoyi.version>3.5.0</ruoyi.version>
+        <revision>3.5.0${sha1}${changelist}</revision>
+        <changelist>-SNAPSHOT</changelist>
+        <sha1/>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
@@ -39,6 +42,17 @@
         <poi.version>4.1.2</poi.version>
         <commons-collections.version>3.2.2</commons-collections.version>
         <transmittable-thread-local.version>2.12.2</transmittable-thread-local.version>
+
+        <maven.plugin.version>3.10.1</maven.plugin.version>
+        <!-- JaCoCo Properties -->
+        <jacoco.version>0.8.8</jacoco.version>
+        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+        <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
+        <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
+        <sonar.language>java</sonar.language>
+        <sonar.dependencyCheck.jsonReportPath>target/dependency-check-report.json</sonar.dependencyCheck.jsonReportPath>
+        <sonar.dependencyCheck.htmlReportPath>target/dependency-check-report.html</sonar.dependencyCheck.htmlReportPath>
+        <dependency.check.maven.version>7.1.0</dependency.check.maven.version>
     </properties>
 
     <!-- 依赖声明 -->
@@ -186,56 +200,56 @@
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common-core</artifactId>
-                <version>${ruoyi.version}</version>
+                <version>${revision}</version>
             </dependency>
 
             <!-- 接口模块 -->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common-swagger</artifactId>
-                <version>${ruoyi.version}</version>
+                <version>${revision}</version>
             </dependency>
 
             <!-- 安全模块 -->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common-security</artifactId>
-                <version>${ruoyi.version}</version>
+                <version>${revision}</version>
             </dependency>
 
             <!-- 权限范围 -->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common-datascope</artifactId>
-                <version>${ruoyi.version}</version>
+                <version>${revision}</version>
             </dependency>
 
             <!-- 多数据源 -->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common-datasource</artifactId>
-                <version>${ruoyi.version}</version>
+                <version>${revision}</version>
             </dependency>
 
             <!-- 日志记录 -->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common-log</artifactId>
-                <version>${ruoyi.version}</version>
+                <version>${revision}</version>
             </dependency>
 
             <!-- 缓存服务 -->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common-redis</artifactId>
-                <version>${ruoyi.version}</version>
+                <version>${revision}</version>
             </dependency>
 
             <!-- 系统接口 -->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-api-system</artifactId>
-                <version>${ruoyi.version}</version>
+                <version>${revision}</version>
             </dependency>
 
         </dependencies>
@@ -249,7 +263,6 @@
         <module>ruoyi-api</module>
         <module>ruoyi-common</module>
     </modules>
-    <packaging>pom</packaging>
 
     <dependencies>
         <!-- bootstrap 启动器 -->
@@ -264,13 +277,55 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven.plugin.version}</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>${project.build.sourceEncoding}</encoding>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>jacoco-initialize</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-site</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>${dependency.check.maven.version}</version>
+                <configuration>
+                    <format>ALL</format>
+                    <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+                    <cveUrlModified>${env.CVE_URL_MODIFIED}</cveUrlModified>
+                    <cveUrlBase>${env.CVE_URL_BASE}</cveUrlBase>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
+    <distributionManagement>
+        <repository>
+            <id>releases</id>
+            <url>${env.NEXUS_REPO_RELEASES_URL}</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <url>${env.NEXUS_REPO_SNAPSHOTS_URL}</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>

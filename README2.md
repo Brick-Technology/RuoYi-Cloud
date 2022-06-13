@@ -19,6 +19,9 @@
    1. gateway
    2. auth
    3. system
+## 环境变量配置
+
+1. NEXUS_REPO_MAVEN_PUBLIC
 
 ## 镜像生成
 
