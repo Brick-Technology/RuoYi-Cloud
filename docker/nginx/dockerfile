@@ -1,7 +1,5 @@
 # 基础镜像
-FROM nginx
-# author
-MAINTAINER ruoyi
+FROM 192.168.2.29:8443/proxy_cache/library/nginx:stable-alpine-perl
 
 # 挂载目录
 VOLUME /home/ruoyi/projects/ruoyi-ui
