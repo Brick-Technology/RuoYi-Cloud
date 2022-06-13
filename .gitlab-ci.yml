@@ -309,17 +309,18 @@ npm-package:
 #    CONTEXT_NAME: "blade-service/blade-user"
 #    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
 #
-#image-upload-ui-admin:
-#  extends: .image-upload
-#  variables:
-#    CONTEXT_NAME: "ui/admin"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#  needs:
-#  - job: "npm-package"
-#    artifacts: true
-#  script:
-#    - /kaniko/executor --cache=true --context ${CONTEXT_NAME} --dockerfile ${CONTEXT_NAME}/Dockerfile --destination $CI_REGISTRY/${IMAGE_NAME}:$VERSION
-#
+image-upload-ui-admin:
+  extends: .image-upload
+  variables:
+    CONTEXT_NAME: "docker/nginx"
+    IMAGE_NAME: "$PROJECT_NAME/ui-admin"
+  needs:
+  - job: "npm-package"
+    artifacts: true
+  script:
+    - mv ruoyi-ui/dist/* docker/nginx/html/dist
+    - /kaniko/executor --cache=true --context ${CONTEXT_NAME} --dockerfile ${CONTEXT_NAME}/Dockerfile --destination $CI_REGISTRY/${IMAGE_NAME}:$VERSION
+
 #jar-upload:
 #  extends: .jar-upload
 #  needs:
