@@ -35,6 +35,8 @@ variables:
   #版本,docker image,jar
   VERSION: $CI_COMMIT_SHORT_SHA
   MAVEN_CMD_VERSION: -Dsha1=-$VERSION
+  SONAR_BE_PROJECT_KEY: ruoyi-be
+  SONAR_FE_PROJECT_KEY: ruoyi-fe
 
 workflow:
   rules:
@@ -120,8 +122,8 @@ sonarqube-check-java:
     paths:
       - ${SONAR_CACHE}
   script:
-    - mvn -s settings.xml $MAVEN_CMD_VERSION package dependency-check:aggregate
-    - mvn -s settings.xml $MAVEN_CMD_VERSION verify sonar:sonar -Dsonar.qualitygate.wait=true
+    - mvn -s settings.xml $MAVEN_CMD_VERSION package dependency-check:aggregate -Dsonar.projectKey=${SONAR_BE_PROJECT_KEY}
+    - mvn -s settings.xml $MAVEN_CMD_VERSION verify sonar:sonar -Dsonar.qualitygate.wait=true -Dsonar.projectKey=${SONAR_BE_PROJECT_KEY}
   allow_failure: true
   artifacts:
     expire_in: 2h
@@ -147,7 +149,7 @@ sonarqube-check-java:
 #    paths:
 #      - .sonar/cache
 #  script:
-#    - sonar-scanner -Dsonar.qualitygate.wait=true -Dsonar.projectKey=SpringBlade-JS -Dsonar.sources=ui/admin/src
+#    - sonar-scanner -Dsonar.qualitygate.wait=true -Dsonar.projectKey=${SONAR_FE_PROJECT_KEY} -Dsonar.sources=ui/admin/src
 #  allow_failure: true
 #  needs:
 #    - job: "build-fe"
