@@ -6,7 +6,7 @@
 #   CI_REGISTRY_PROXY: 192.168.2.29:8443/proxy_cache/
 #   CA_CERTIFICATE:  【192.168.2.29的SSL证书】
 #   CI_REGISTRY: 192.168.2.29:8443
-#   CI_REGISTRY_USER: robot$ruoyi+gitlab 【harbor roboot的Name,需要先在harbor创建仓库后，再创建robot账号】
+#   CI_REGISTRY_USER: robot$$ruoyi-cloud+gitlab 【注意需要两个$,前一个$为转义字符】【harbor roboot的Name,需要先在harbor创建仓库后，再创建robot账号】
 #   CI_REGISTRY_PASSWORD:【harbor roboot的Secret】
 #   SONAR_HOST_URL:  http://192.168.2.28:9000/
 #   SONAR_TOKEN:【填入个人账号的token】
