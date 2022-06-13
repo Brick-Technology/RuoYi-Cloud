@@ -46,6 +46,8 @@
         <maven.plugin.version>3.10.1</maven.plugin.version>
         <!-- JaCoCo Properties -->
         <jacoco.version>0.8.8</jacoco.version>
+        <sonar.projectName>ruoyi-be</sonar.projectName>
+        <sonar.projectKey>ruoyi-be</sonar.projectKey>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
         <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
