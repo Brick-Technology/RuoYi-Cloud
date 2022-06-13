@@ -164,71 +164,61 @@ sonarqube-check-js:
     # 缓存作业产物
     paths:
       - ${PROJECT_FE_DIR_NODE_MODULES}
-#
-#java-package:
-#  variables:
-#  image: ${CI_REGISTRY_PROXY}library/maven:3.8.5-openjdk-11-slim
-#  # 执行阶段
-#  stage: package
-#  # 执行runner
-#  tags:
-#    - cluster
-#  # 执行脚本
-#  script:
-#    - echo "package start"
-#    - mvn -s settings.xml $MAVEN_CMD_VERSION package -Dmaven.test.skip=true
-#    - pwd && ls -a
-#    - echo "package start end"
-#  artifacts:
-#    # 生成的产物2小时后自动销毁
-#    expire_in: 2 h
-#    # 缓存作业产物
-#    paths:
-#      - blade-gateway/target/*
-#      - blade-auth/target/*
-#      - blade-ops/blade-admin/target/*
-#      - blade-ops/blade-develop/target/*
-#      - blade-ops/blade-report/target/*
-#      - blade-ops/blade-resource/target/*
-#      - blade-ops/blade-swagger/target/*
-#      - blade-service/blade-desk/target/*
-#      - blade-service/blade-log/target/*
-#      - blade-service/blade-system/target/*
-#      - blade-service/blade-user/target/*
-#  needs:
-#    - job: "sonarqube-check-java"
-#      artifacts: true
-#  cache:
-#    key: "${CI_JOB_NAME}"
-#    paths:
-#      - ${LOCAL_M2_REPOS}
-#
-#npm-package:
-#  variables:
-#  image: ${CI_REGISTRY_PROXY}library/node:12.22.12-bullseye-slim
-#  # 执行阶段
-#  stage: package
-#  # 执行runner
-#  tags:
-#    - cluster
-#  # 执行脚本
-#  script:
-#    - echo "package start"
-#    - cd ui/admin/
-#    - pwd && ls -a
-#    - yarn build
-#    - pwd && ls -a
-#    - echo "package start end"
-#  artifacts:
-#    # 生成的产物2小时后自动销毁
-#    expire_in: 2 h
-#    # 缓存作业产物
-#    paths:
-#      - ${PROJECT_FE_DIR_DIST}
-#  needs:
-#    - job: "sonarqube-check-js"
-#      artifacts: true
-#
+
+java-package:
+  variables:
+  image: ${CI_REGISTRY_PROXY}library/maven:3.8.5-openjdk-11-slim
+  # 执行阶段
+  stage: package
+  # 执行runner
+  tags:
+    - cluster
+  # 执行脚本
+  script:
+    - echo "package start"
+    - mvn -s settings.xml $MAVEN_CMD_VERSION package -Dmaven.test.skip=true
+    - pwd && ls -a
+    - echo "package start end"
+  artifacts:
+    # 生成的产物2小时后自动销毁
+    expire_in: 2 h
+    # 缓存作业产物
+    paths:
+      - "**/target/*.jar"
+  needs:
+    - job: "sonarqube-check-java"
+      artifacts: true
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ${LOCAL_M2_REPOS}
+
+npm-package:
+  variables:
+  image: ${CI_REGISTRY_PROXY}library/node:12.22.12-bullseye-slim
+  # 执行阶段
+  stage: package
+  # 执行runner
+  tags:
+    - cluster
+  # 执行脚本
+  script:
+    - echo "package start"
+    - cd ${PROJECT_FE_DIR}
+    - pwd && ls -a
+    - yarn build:prod
+    - pwd && ls -a
+    - echo "package start end"
+  artifacts:
+    # 生成的产物2小时后自动销毁
+    expire_in: 2 h
+    # 缓存作业产物
+    paths:
+      - ${PROJECT_FE_DIR_DIST}
+  needs:
+    - job: "sonarqube-check-js"
+      artifacts: true
+
 #image-upload-saber-db:
 #  extends: .image-upload
 #  needs:
