@@ -1,0 +1,400 @@
+#-----------------------------------
+# variables:
+# Set the variable through the GitLab UI, or set it here by
+# uncommenting the following two lines and replacing the Agent's path with your own:
+# variables:
+#   CI_REGISTRY_PROXY: 192.168.2.29:8443/proxy_cache/
+#   CA_CERTIFICATE:  【192.168.2.29的SSL证书】
+#   CI_REGISTRY: 192.168.2.29:8443
+#   CI_REGISTRY_USER: robot$$springblade+gitlab 【harbor roboot的账号】
+#   CI_REGISTRY_PASSWORD:
+#   SONAR_HOST_URL:  http://192.168.2.28:9000/
+#   SONAR_TOKEN:
+#   NEXUS_REPO_USERNAME: 私有仓库账号
+#   NEXUS_REPO_PASSWORD: 私有仓库密码
+#   NEXUS_REPO_RELEASES_URL: release仓库地址
+#   NEXUS_REPO_SNAPSHOTS_URL: snapshot仓库地址
+#   CVE_URL_MODIFIED: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-modified.json.gz
+#   CVE_URL_BASE: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz
+
+
+include:
+  - .gitlab/jobs/build.yml
+  - .gitlab/jobs/upload.yml
+
+variables:
+  LOCAL_M2_REPOS: .m2/repository
+  LOCAL_UI_ADMIN_DIST: ruoyi-ui/dist
+  LOCAL_UI_ADMIN_NODE_MODULES: ruoyi-ui/node_modules
+  MAVEN_OPTS: "-Dmaven.repo.local=${LOCAL_M2_REPOS}"
+  SONAR_CACHE: .sonar/cache
+  PROJECT_NAME: "ruoyi-cloud"
+  #管理项目k8s yaml的项目编号
+  MANIFEST_PROJECT_ID:
+  #版本,docker image,jar
+  VERSION: $CI_COMMIT_SHORT_SHA
+  MAVEN_CMD_VERSION: -Dsha1=-$VERSION
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      variables:
+          VERSION: $CI_COMMIT_TAG
+          MAVEN_CMD_VERSION: -Drevision=$VERSION -Dchangelist=
+    - when: always
+
+stages:
+  # - .pre
+  #编译
+  - build
+  #测试
+  - test
+  #扫描
+  - scan
+  #打包
+  - package
+  #上传镜像
+  - upload
+  - predeploy
+  - deploy
+  # - .post
+
+build-be:
+  stage: build
+  tags:
+    # - build-tag
+    - cluster
+  image: ${CI_REGISTRY_PROXY}library/maven:3.8.5-openjdk-11-slim
+  # 执行脚本
+  script:
+    - echo "compile start"
+    - mvn -s settings.xml $MAVEN_CMD_VERSION clean compile
+    - pwd && ls -a
+    - echo "compile end"
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ${LOCAL_M2_REPOS}
+  artifacts:
+    expire_in: 2h
+    paths:
+      - ${LOCAL_M2_REPOS}
+
+#build-fe:
+#  stage: build
+#  tags:
+#    # - build-tag
+#    - cluster
+#  image: ${CI_REGISTRY_PROXY}library/node:12.22.12-bullseye-slim
+#  # 执行脚本
+#  script:
+#    - echo "compile start"
+#    - cd ui/admin/
+#    - pwd && ls -a
+#    - yarn
+#    - pwd && ls -a
+#    - echo "compile end"
+#  artifacts:
+#    # 生成的产物2小时后自动销毁
+#    expire_in: 2 h
+#    # 缓存作业产物
+#    paths:
+#      - ${LOCAL_UI_ADMIN_NODE_MODULES}
+#  cache:
+#    key: "${CI_JOB_NAME}"
+#    paths:
+#      - ${LOCAL_UI_ADMIN_NODE_MODULES}
+
+#sonarqube-check-java:
+#  image: ${CI_REGISTRY_PROXY}library/maven:3.8.5-openjdk-11-slim
+#  tags:
+#    # - main
+#    - cluster
+#  stage: scan
+#  variables:
+#    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+#    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+#  cache:
+#    key: "${CI_JOB_NAME}"
+#    paths:
+#      - ${SONAR_CACHE}
+#  script:
+#    - mvn -s settings.xml $MAVEN_CMD_VERSION package dependency-check:aggregate
+#    - mvn -s settings.xml $MAVEN_CMD_VERSION verify sonar:sonar -Dsonar.qualitygate.wait=true
+#  allow_failure: true
+#  artifacts:
+#    expire_in: 2h
+#    paths:
+#      - ${LOCAL_M2_REPOS}
+#  needs:
+#    - job: "build-be"
+#      artifacts: true
+#
+#sonarqube-check-js:
+#  tags:
+#    # - main
+#    - cluster
+#  stage: scan
+#  image:
+#    name: ${CI_REGISTRY_PROXY}sonarsource/sonar-scanner-cli:4.7.0
+#    entrypoint: [""]
+#  variables:
+#    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+#    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+#  cache:
+#    key: "${CI_JOB_NAME}"
+#    paths:
+#      - .sonar/cache
+#  script:
+#    - sonar-scanner -Dsonar.qualitygate.wait=true -Dsonar.projectKey=SpringBlade-JS -Dsonar.sources=ui/admin/src
+#  allow_failure: true
+#  needs:
+#    - job: "build-fe"
+#      artifacts: true
+#  artifacts:
+#    # 生成的产物2小时后自动销毁
+#    expire_in: 2 h
+#    # 缓存作业产物
+#    paths:
+#      - ${LOCAL_UI_ADMIN_NODE_MODULES}
+#
+#java-package:
+#  variables:
+#  image: ${CI_REGISTRY_PROXY}library/maven:3.8.5-openjdk-11-slim
+#  # 执行阶段
+#  stage: package
+#  # 执行runner
+#  tags:
+#    - cluster
+#  # 执行脚本
+#  script:
+#    - echo "package start"
+#    - mvn -s settings.xml $MAVEN_CMD_VERSION package -Dmaven.test.skip=true
+#    - pwd && ls -a
+#    - echo "package start end"
+#  artifacts:
+#    # 生成的产物2小时后自动销毁
+#    expire_in: 2 h
+#    # 缓存作业产物
+#    paths:
+#      - blade-gateway/target/*
+#      - blade-auth/target/*
+#      - blade-ops/blade-admin/target/*
+#      - blade-ops/blade-develop/target/*
+#      - blade-ops/blade-report/target/*
+#      - blade-ops/blade-resource/target/*
+#      - blade-ops/blade-swagger/target/*
+#      - blade-service/blade-desk/target/*
+#      - blade-service/blade-log/target/*
+#      - blade-service/blade-system/target/*
+#      - blade-service/blade-user/target/*
+#  needs:
+#    - job: "sonarqube-check-java"
+#      artifacts: true
+#  cache:
+#    key: "${CI_JOB_NAME}"
+#    paths:
+#      - ${LOCAL_M2_REPOS}
+#
+#npm-package:
+#  variables:
+#  image: ${CI_REGISTRY_PROXY}library/node:12.22.12-bullseye-slim
+#  # 执行阶段
+#  stage: package
+#  # 执行runner
+#  tags:
+#    - cluster
+#  # 执行脚本
+#  script:
+#    - echo "package start"
+#    - cd ui/admin/
+#    - pwd && ls -a
+#    - yarn build
+#    - pwd && ls -a
+#    - echo "package start end"
+#  artifacts:
+#    # 生成的产物2小时后自动销毁
+#    expire_in: 2 h
+#    # 缓存作业产物
+#    paths:
+#      - ${LOCAL_UI_ADMIN_DIST}
+#  needs:
+#    - job: "sonarqube-check-js"
+#      artifacts: true
+#
+#image-upload-saber-db:
+#  extends: .image-upload
+#  needs:
+#  - job: "java-package"
+#    artifacts: true
+#  script:
+#    - /kaniko/executor --cache=true --context script/kuboard/saber-db --dockerfile script/kuboard/saber-db/Dockerfile --destination $CI_REGISTRY/$PROJECT_NAME/saber-db:$VERSION
+#
+#image-upload-nacos-db:
+#  extends: .image-upload
+#  needs:
+#  - job: "java-package"
+#    artifacts: true
+#  script:
+#    - /kaniko/executor --cache=true --context script/kuboard/nacos-db --dockerfile script/kuboard/nacos-db/Dockerfile --destination $CI_REGISTRY/$PROJECT_NAME/nacos-db:$VERSION
+#
+#image-upload-sentinel:
+#  extends: .image-upload
+#  needs:
+#  - job: "java-package"
+#    artifacts: true
+#  script:
+#    - /kaniko/executor --cache=true --context script/kuboard/sentinel --dockerfile script/kuboard/sentinel/Dockerfile --destination $CI_REGISTRY/$PROJECT_NAME/sentinel:$VERSION
+#
+#image-upload-blade-gateway:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-gateway"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-auth:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-auth"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-admin:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-ops/blade-admin"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-develop:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-ops/blade-develop"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-report:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-ops/blade-report"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-resource:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-ops/blade-resource"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-swagger:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-ops/blade-swagger"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-desk:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-service/blade-desk"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-log:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-service/blade-log"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-system:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-service/blade-system"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-blade-user:
+#  extends: .image-upload-service
+#  variables:
+#    CONTEXT_NAME: "blade-service/blade-user"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#
+#image-upload-ui-admin:
+#  extends: .image-upload
+#  variables:
+#    CONTEXT_NAME: "ui/admin"
+#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
+#  needs:
+#  - job: "npm-package"
+#    artifacts: true
+#  script:
+#    - /kaniko/executor --cache=true --context ${CONTEXT_NAME} --dockerfile ${CONTEXT_NAME}/Dockerfile --destination $CI_REGISTRY/${IMAGE_NAME}:$VERSION
+#
+#jar-upload:
+#  extends: .jar-upload
+#  needs:
+#  - job: "java-package"
+#    artifacts: true
+#  script:
+#    - mvn -s settings.xml $MAVEN_CMD_VERSION --batch-mode deploy
+#  rules:
+#    - if: '$CI_COMMIT_TAG'
+#      when: on_success
+#    - when: never
+#
+#predeploy:
+#  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
+#  stage: predeploy
+#  script:
+#    - echo -n "IMAGE_REF=" >> deploy.env
+#    - echo -n "$CI_REGISTRY/$PROJECT_NAME/saber-db:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/nacos-db:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/sentinel:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-gateway:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-auth:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-admin:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-develop:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-report:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-resource:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-swagger:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-service/blade-desk:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-service/blade-log:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-service/blade-system:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-service/blade-user:$VERSION" >> deploy.env
+#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/ui/admin:$VERSION" >> deploy.env
+#  after_script:
+#    - cat deploy.env
+#  artifacts:
+#    reports:
+#      dotenv: deploy.env
+#  rules:
+#  - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH =~ /^release/ || $CI_COMMIT_TAG'
+#    when: on_success
+#  - when: never
+#
+#deploy:dev:
+#  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
+#  stage: deploy
+#  needs:
+#    - job: predeploy
+#      artifacts: true
+#  variables:
+#    TARGET_ENVIRONMENT: dev
+#  script:
+#  - printenv
+#  - 'curl -v -k --fail --request POST --form token=${CI_JOB_TOKEN} --form ref=main --form "variables[IMAGE_REF]=${IMAGE_REF}" --form "variables[TARGET_ENVIRONMENT]=${TARGET_ENVIRONMENT}" "${CI_API_V4_URL}/projects/${MANIFEST_PROJECT_ID}/trigger/pipeline"'
+#  environment:
+#    name: $TARGET_ENVIRONMENT
+#  rules:
+#  - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH =~ /^release/ || $CI_COMMIT_TAG'
+#    when: on_success
+#  - when: never
+#
+#deploy:test:
+#  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
+#  stage: deploy
+#  needs:
+#    - job: predeploy
+#      artifacts: true
+#  variables:
+#    TARGET_ENVIRONMENT: test
+#  script:
+#  - 'curl -v -k --fail --request POST --form token=${CI_JOB_TOKEN} --form ref=main --form "variables[IMAGE_REF]=${IMAGE_REF}" --form "variables[TARGET_ENVIRONMENT]=${TARGET_ENVIRONMENT}" "${CI_API_V4_URL}/projects/${MANIFEST_PROJECT_ID}/trigger/pipeline"'
+#  environment:
+#    name: $TARGET_ENVIRONMENT
+#  rules:
+#    - if: '$CI_COMMIT_TAG'
+#      when: manual

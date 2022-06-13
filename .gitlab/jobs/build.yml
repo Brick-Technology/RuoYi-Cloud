@@ -1,0 +1,13 @@
+.java-build:
+  # 执行阶段
+  stage: build
+  # 执行runner
+  tags:
+    # - build-tag
+    - cluster
+  # 执行脚本
+  script:
+    - echo "compile start"
+    - mvn clean compile
+    - pwd && ls
+    - echo "compile end"
