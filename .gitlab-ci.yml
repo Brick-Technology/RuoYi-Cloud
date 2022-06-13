@@ -319,7 +319,7 @@ image-upload-ui-admin:
     artifacts: true
   script:
     - mv ruoyi-ui/dist/* docker/nginx/html/dist
-    - /kaniko/executor --cache=true --context ${CONTEXT_NAME} --dockerfile ${CONTEXT_NAME}/dockerfile --destination $CI_REGISTRY/${IMAGE_NAME}:$VERSION
+    - /kaniko/executor --cache=true --context ${CONTEXT_NAME} --dockerfile ${CONTEXT_NAME}/Dockerfile --destination $CI_REGISTRY/${IMAGE_NAME}:$VERSION
 
 #jar-upload:
 #  extends: .jar-upload
