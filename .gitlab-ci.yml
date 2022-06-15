@@ -196,22 +196,14 @@ npm-package:
   needs:
     - job: "sonarqube-check-js"
 
-#image-upload-saber-db:
-#  extends: .image-upload
-#  needs:
-#  - job: "java-package"
-#    artifacts: true
-#  script:
-#    - /kaniko/executor --cache=true --context script/kuboard/saber-db --dockerfile script/kuboard/saber-db/Dockerfile --destination $CI_REGISTRY/$PROJECT_NAME/saber-db:$VERSION
-#
-#image-upload-nacos-db:
-#  extends: .image-upload
-#  needs:
-#  - job: "java-package"
-#    artifacts: true
-#  script:
-#    - /kaniko/executor --cache=true --context script/kuboard/nacos-db --dockerfile script/kuboard/nacos-db/Dockerfile --destination $CI_REGISTRY/$PROJECT_NAME/nacos-db:$VERSION
-#
+image-upload-db:
+  extends: .image-upload
+  variables:
+    CONTEXT_NAME: "docker/mysql"
+    IMAGE_NAME: "$PROJECT_NAME/mysql"
+  before_script:
+    - mv sql/* docker/mysql/db
+
 #image-upload-sentinel:
 #  extends: .image-upload
 #  needs:
@@ -219,73 +211,63 @@ npm-package:
 #    artifacts: true
 #  script:
 #    - /kaniko/executor --cache=true --context script/kuboard/sentinel --dockerfile script/kuboard/sentinel/Dockerfile --destination $CI_REGISTRY/$PROJECT_NAME/sentinel:$VERSION
-#
-#image-upload-blade-gateway:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-gateway"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-auth:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-auth"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-admin:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-ops/blade-admin"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-develop:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-ops/blade-develop"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-report:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-ops/blade-report"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-resource:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-ops/blade-resource"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-swagger:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-ops/blade-swagger"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-desk:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-service/blade-desk"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-log:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-service/blade-log"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-system:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-service/blade-system"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
-#image-upload-blade-user:
-#  extends: .image-upload-service
-#  variables:
-#    CONTEXT_NAME: "blade-service/blade-user"
-#    IMAGE_NAME: "$PROJECT_NAME/${CONTEXT_NAME}"
-#
+
+image-upload-gateway:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/gateway"
+    IMAGE_NAME: "$PROJECT_NAME/gateway"
+  before_script:
+    - mv ruoyi-gateway/target/ruoyi-gateway.jar docker/ruoyi/gateway/jar/
+
+image-upload-auth:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/auth"
+    IMAGE_NAME: "$PROJECT_NAME/docker/ruoyi/auth"
+  before_script:
+    - mv ruoyi-auth/target/ruoyi-auth.jar docker/ruoyi/auth/jar/
+
+image-upload-file:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/modules/file"
+    IMAGE_NAME: "$PROJECT_NAME/file"
+  before_script:
+    - mv ruoyi-modules/ruoyi-file/target/ruoyi-modules-file.jar docker/ruoyi/modules/file/jar/
+
+image-upload-gen:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/modules/gen"
+    IMAGE_NAME: "$PROJECT_NAME/gen"
+  before_script:
+    - mv ruoyi-modules/ruoyi-gen/target/ruoyi-modules-gen.jar docker/ruoyi/modules/gen/jar/
+
+image-upload-job:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/modules/job"
+    IMAGE_NAME: "$PROJECT_NAME/job"
+  before_script:
+    - mv ruoyi-modules/ruoyi-job/target/ruoyi-modules-job.jar docker/ruoyi/modules/job/jar/
+
+image-upload-system:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/modules/system"
+    IMAGE_NAME: "$PROJECT_NAME/system"
+  before_script:
+    - mv ruoyi-modules/ruoyi-system/target/ruoyi-modules-system.jar docker/ruoyi/modules/system/jar/
+
+image-upload-monitor:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/visual/monitor"
+    IMAGE_NAME: "$PROJECT_NAME/monitor"
+  before_script:
+    - mv ruoyi-visual/ruoyi-monitor/target/ruoyi-visual-monitor.jar docker/ruoyi/visual/monitor/jar/
+
 image-upload-ui-admin:
   extends: .image-upload
   variables:
@@ -294,22 +276,21 @@ image-upload-ui-admin:
   needs:
   - job: "npm-package"
     artifacts: true
-  script:
+  before_script:
     - mv ruoyi-ui/dist/* docker/nginx/html/dist
-    - /kaniko/executor --cache=true --context ${CONTEXT_NAME} --dockerfile ${CONTEXT_NAME}/Dockerfile --destination $CI_REGISTRY/${IMAGE_NAME}:$VERSION
 
-#jar-upload:
-#  extends: .jar-upload
-#  needs:
-#  - job: "java-package"
-#    artifacts: true
-#  script:
-#    - mvn -s settings.xml $MAVEN_CMD_VERSION --batch-mode deploy
-#  rules:
-#    - if: '$CI_COMMIT_TAG'
-#      when: on_success
-#    - when: never
-#
+jar-upload:
+  extends: .jar-upload
+  needs:
+  - job: "java-package"
+    artifacts: true
+  script:
+    - mvn -s settings.xml $MAVEN_CMD_VERSION --batch-mode deploy
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: on_success
+    - when: never
+
 #predeploy:
 #  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
 #  stage: predeploy
