@@ -25,6 +25,7 @@
   - job: "java-package"
     artifacts: true
   script:
+    - ${MOVE_FILE_SCRIPT}
     - /kaniko/executor --cache=true --context ${CONTEXT_NAME} --dockerfile ${CONTEXT_NAME}/Dockerfile --destination $CI_REGISTRY/${IMAGE_NAME}:$VERSION
 
 .jar-upload:

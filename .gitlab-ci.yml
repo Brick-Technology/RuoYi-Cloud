@@ -201,8 +201,7 @@ image-upload-db:
   variables:
     CONTEXT_NAME: "docker/mysql"
     IMAGE_NAME: "$PROJECT_NAME/mysql"
-  before_script:
-    - mv sql/* docker/mysql/db
+    MOVE_FILE_SCRIPT: "mv sql/* docker/mysql/db"
 
 #image-upload-sentinel:
 #  extends: .image-upload
@@ -217,67 +216,59 @@ image-upload-gateway:
   variables:
     CONTEXT_NAME: "docker/ruoyi/gateway"
     IMAGE_NAME: "$PROJECT_NAME/gateway"
-  before_script:
-    - mv ruoyi-gateway/target/ruoyi-gateway.jar docker/ruoyi/gateway/jar/
+    MOVE_FILE_SCRIPT: "mv ruoyi-gateway/target/ruoyi-gateway.jar docker/ruoyi/gateway/jar/"
 
 image-upload-auth:
   extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/ruoyi/auth"
     IMAGE_NAME: "$PROJECT_NAME/docker/ruoyi/auth"
-  before_script:
-    - mv ruoyi-auth/target/ruoyi-auth.jar docker/ruoyi/auth/jar/
+    MOVE_FILE_SCRIPT: "mv ruoyi-auth/target/ruoyi-auth.jar docker/ruoyi/auth/jar/"
 
 image-upload-file:
   extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/ruoyi/modules/file"
     IMAGE_NAME: "$PROJECT_NAME/file"
-  before_script:
-    - mv ruoyi-modules/ruoyi-file/target/ruoyi-modules-file.jar docker/ruoyi/modules/file/jar/
+    MOVE_FILE_SCRIPT: "mv ruoyi-modules/ruoyi-file/target/ruoyi-modules-file.jar docker/ruoyi/modules/file/jar/"
 
 image-upload-gen:
   extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/ruoyi/modules/gen"
     IMAGE_NAME: "$PROJECT_NAME/gen"
-  before_script:
-    - mv ruoyi-modules/ruoyi-gen/target/ruoyi-modules-gen.jar docker/ruoyi/modules/gen/jar/
+    MOVE_FILE_SCRIPT: "mv ruoyi-modules/ruoyi-gen/target/ruoyi-modules-gen.jar docker/ruoyi/modules/gen/jar/"
 
 image-upload-job:
   extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/ruoyi/modules/job"
     IMAGE_NAME: "$PROJECT_NAME/job"
-  before_script:
-    - mv ruoyi-modules/ruoyi-job/target/ruoyi-modules-job.jar docker/ruoyi/modules/job/jar/
+    MOVE_FILE_SCRIPT: "mv ruoyi-modules/ruoyi-job/target/ruoyi-modules-job.jar docker/ruoyi/modules/job/jar/"
 
 image-upload-system:
   extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/ruoyi/modules/system"
     IMAGE_NAME: "$PROJECT_NAME/system"
-  before_script:
-    - mv ruoyi-modules/ruoyi-system/target/ruoyi-modules-system.jar docker/ruoyi/modules/system/jar/
+    MOVE_FILE_SCRIPT: "mv ruoyi-modules/ruoyi-system/target/ruoyi-modules-system.jar docker/ruoyi/modules/system/jar/"
 
 image-upload-monitor:
   extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/ruoyi/visual/monitor"
     IMAGE_NAME: "$PROJECT_NAME/monitor"
-  before_script:
-    - mv ruoyi-visual/ruoyi-monitor/target/ruoyi-visual-monitor.jar docker/ruoyi/visual/monitor/jar/
+    MOVE_FILE_SCRIPT: "mv ruoyi-visual/ruoyi-monitor/target/ruoyi-visual-monitor.jar docker/ruoyi/visual/monitor/jar/"
 
 image-upload-ui-admin:
   extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/nginx"
     IMAGE_NAME: "$PROJECT_NAME/ui-admin"
+    MOVE_FILE_SCRIPT: "mv ruoyi-ui/dist/* docker/nginx/html/dist"
   needs:
   - job: "npm-package"
     artifacts: true
-  before_script:
-    - mv ruoyi-ui/dist/* docker/nginx/html/dist
 
 jar-upload:
   extends: .jar-upload
