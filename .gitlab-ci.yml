@@ -17,7 +17,7 @@
 #   NEXUS_REPO_SNAPSHOTS_URL: http://192.168.2.28:8081/repository/maven-snapshots/
 #   CVE_URL_MODIFIED: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-modified.json.gz
 #   CVE_URL_BASE: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz
-
+#   MANIFEST_PROJECT_ID: 【管理项目k8s yaml的项目编号，如 1】
 
 include:
   - .gitlab/jobs/build.yml
@@ -27,8 +27,6 @@ variables:
   LOCAL_M2_REPOS: .m2/repository
   MAVEN_OPTS: "-Dmaven.repo.local=${LOCAL_M2_REPOS}"
   SONAR_CACHE: .sonar/cache
-  #管理项目k8s yaml的项目编号
-  MANIFEST_PROJECT_ID: 0
   #版本,docker image,jar
   VERSION: $CI_COMMIT_SHORT_SHA
   MAVEN_CMD_VERSION: -Dsha1=-$VERSION
