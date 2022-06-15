@@ -197,7 +197,7 @@ npm-package:
     - job: "sonarqube-check-js"
 
 image-upload-db:
-  extends: .image-upload
+  extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/mysql"
     IMAGE_NAME: "$PROJECT_NAME/mysql"
@@ -269,7 +269,7 @@ image-upload-monitor:
     - mv ruoyi-visual/ruoyi-monitor/target/ruoyi-visual-monitor.jar docker/ruoyi/visual/monitor/jar/
 
 image-upload-ui-admin:
-  extends: .image-upload
+  extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/nginx"
     IMAGE_NAME: "$PROJECT_NAME/ui-admin"
