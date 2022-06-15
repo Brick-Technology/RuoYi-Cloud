@@ -222,7 +222,7 @@ image-upload-auth:
   extends: .image-upload-service
   variables:
     CONTEXT_NAME: "docker/ruoyi/auth"
-    IMAGE_NAME: "$PROJECT_NAME/docker/ruoyi/auth"
+    IMAGE_NAME: "$PROJECT_NAME/auth"
     MOVE_FILE_SCRIPT: "mv ruoyi-auth/target/ruoyi-auth.jar docker/ruoyi/auth/jar/"
 
 image-upload-file:
