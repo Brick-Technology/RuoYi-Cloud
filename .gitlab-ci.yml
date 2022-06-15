@@ -17,7 +17,7 @@
 #   NEXUS_REPO_SNAPSHOTS_URL: http://192.168.2.28:8081/repository/maven-snapshots/
 #   CVE_URL_MODIFIED: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-modified.json.gz
 #   CVE_URL_BASE: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz
-
+#   MANIFEST_PROJECT_ID: 【管理项目k8s yaml的项目编号，如 1】
 
 include:
   - .gitlab/jobs/build.yml
@@ -27,8 +27,6 @@ variables:
   LOCAL_M2_REPOS: .m2/repository
   MAVEN_OPTS: "-Dmaven.repo.local=${LOCAL_M2_REPOS}"
   SONAR_CACHE: .sonar/cache
-  #管理项目k8s yaml的项目编号
-  MANIFEST_PROJECT_ID: 0
   #版本,docker image,jar
   VERSION: $CI_COMMIT_SHORT_SHA
   MAVEN_CMD_VERSION: -Dsha1=-$VERSION
@@ -282,66 +280,60 @@ jar-upload:
       when: on_success
     - when: never
 
-#predeploy:
-#  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
-#  stage: predeploy
-#  script:
-#    - echo -n "IMAGE_REF=" >> deploy.env
-#    - echo -n "$CI_REGISTRY/$PROJECT_NAME/saber-db:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/nacos-db:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/sentinel:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-gateway:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-auth:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-admin:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-develop:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-report:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-resource:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-ops/blade-swagger:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-service/blade-desk:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-service/blade-log:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-service/blade-system:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/blade-service/blade-user:$VERSION" >> deploy.env
-#    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/ui/admin:$VERSION" >> deploy.env
-#  after_script:
-#    - cat deploy.env
-#  artifacts:
-#    reports:
-#      dotenv: deploy.env
-#  rules:
-#  - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH =~ /^release/ || $CI_COMMIT_TAG'
-#    when: on_success
-#  - when: never
-#
-#deploy:dev:
-#  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
-#  stage: deploy
-#  needs:
-#    - job: predeploy
-#      artifacts: true
-#  variables:
-#    TARGET_ENVIRONMENT: dev
-#  script:
-#  - printenv
-#  - 'curl -v -k --fail --request POST --form token=${CI_JOB_TOKEN} --form ref=main --form "variables[IMAGE_REF]=${IMAGE_REF}" --form "variables[TARGET_ENVIRONMENT]=${TARGET_ENVIRONMENT}" "${CI_API_V4_URL}/projects/${MANIFEST_PROJECT_ID}/trigger/pipeline"'
-#  environment:
-#    name: $TARGET_ENVIRONMENT
-#  rules:
-#  - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH =~ /^release/ || $CI_COMMIT_TAG'
-#    when: on_success
-#  - when: never
-#
-#deploy:test:
-#  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
-#  stage: deploy
-#  needs:
-#    - job: predeploy
-#      artifacts: true
-#  variables:
-#    TARGET_ENVIRONMENT: test
-#  script:
-#  - 'curl -v -k --fail --request POST --form token=${CI_JOB_TOKEN} --form ref=main --form "variables[IMAGE_REF]=${IMAGE_REF}" --form "variables[TARGET_ENVIRONMENT]=${TARGET_ENVIRONMENT}" "${CI_API_V4_URL}/projects/${MANIFEST_PROJECT_ID}/trigger/pipeline"'
-#  environment:
-#    name: $TARGET_ENVIRONMENT
-#  rules:
-#    - if: '$CI_COMMIT_TAG'
-#      when: manual
+predeploy:
+ image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
+ stage: predeploy
+ script:
+   - echo -n "IMAGE_REF=" >> deploy.env
+   - echo -n "$CI_REGISTRY/$PROJECT_NAME/mysql:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/gateway:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/auth:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/file:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/gen:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/job:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/system:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/monitor:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/ui-admin:$VERSION" >> deploy.env
+ after_script:
+   - cat deploy.env
+ artifacts:
+   reports:
+     dotenv: deploy.env
+ rules:
+ - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH =~ /^release/ || $CI_COMMIT_TAG'
+   when: on_success
+ - when: never
+
+deploy:dev:
+ image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
+ stage: deploy
+ needs:
+   - job: predeploy
+     artifacts: true
+ variables:
+   TARGET_ENVIRONMENT: dev
+ script:
+ - printenv
+ - 'curl -v -k --fail --request POST --form token=${CI_JOB_TOKEN} --form ref=main --form "variables[IMAGE_REF]=${IMAGE_REF}" --form "variables[TARGET_ENVIRONMENT]=${TARGET_ENVIRONMENT}" "${CI_API_V4_URL}/projects/${MANIFEST_PROJECT_ID}/trigger/pipeline"'
+ environment:
+   name: $TARGET_ENVIRONMENT
+ rules:
+ - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH =~ /^release/ || $CI_COMMIT_TAG'
+   when: on_success
+ - when: never
+
+deploy:test:
+ image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
+ stage: deploy
+ needs:
+   - job: predeploy
+     artifacts: true
+ variables:
+   TARGET_ENVIRONMENT: test
+ script:
+ - 'curl -v -k --fail --request POST --form token=${CI_JOB_TOKEN} --form ref=main --form "variables[IMAGE_REF]=${IMAGE_REF}" --form "variables[TARGET_ENVIRONMENT]=${TARGET_ENVIRONMENT}" "${CI_API_V4_URL}/projects/${MANIFEST_PROJECT_ID}/trigger/pipeline"'
+ environment:
+   name: $TARGET_ENVIRONMENT
+ rules:
+   - if: '$CI_COMMIT_TAG'
+     when: manual
