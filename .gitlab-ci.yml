@@ -14,6 +14,7 @@ include:
     file: '.gitlab-ci.yml'
 
 test_triggers:
+  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
   stage: triggers
   script: echo 'test'
 
