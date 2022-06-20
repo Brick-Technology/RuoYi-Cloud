@@ -2,7 +2,7 @@ stages:
   - triggers
 
 be_triggers:
-  stage: trigger
+  stage: triggers
   trigger:
     include: .gitlab/be.gitlab-ci.yml
     strategy: depend
@@ -17,7 +17,7 @@ be_triggers:
         - docker/ruoyi/*
   
 fe_triggers:
-  stage: trigger
+  stage: triggers
   trigger:
     include: .gitlab/fe.gitlab-ci.yml
     strategy: depend
@@ -27,7 +27,7 @@ fe_triggers:
         - docker/nginx/*
 
 base_triggers:
-  stage: trigger
+  stage: triggers
   trigger:
     include: .gitlab/fe.gitlab-ci.yml
     strategy: depend
