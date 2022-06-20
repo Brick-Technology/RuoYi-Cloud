@@ -20,9 +20,9 @@
 #   MANIFEST_PROJECT_ID: 【管理项目k8s yaml的项目编号，如 1】
 
 include:
-  - jobs/build.yml
-  - jobs/upload.yml
-  - jobs/deploy.yml
+  - .gitlab/jobs/build.yml
+  - .gitlab/jobs/upload.yml
+  - .gitlab/jobs/deploy.yml
 
 variables:
   LOCAL_M2_REPOS: .m2/repository
