@@ -66,11 +66,14 @@ stages:
   # - .post
 
 image-upload-db:
-  extends: .image-upload-service
+  extends: .image-upload
   variables:
     CONTEXT_NAME: "docker/mysql"
     IMAGE_NAME: "$PROJECT_NAME/mysql"
     MOVE_FILE_SCRIPT: "mv sql/* docker/mysql/db"
+  script:
+    - ${MOVE_FILE_SCRIPT}
+    - /kaniko/executor --cache=true --context ${CONTEXT_NAME} --dockerfile ${CONTEXT_NAME}/Dockerfile --destination $CI_REGISTRY/${IMAGE_NAME}:$VERSION
 
 predeploy:
  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
