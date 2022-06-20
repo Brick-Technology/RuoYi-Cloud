@@ -13,43 +13,37 @@ include:
     ref: main
     file: '.gitlab-ci.yml'
 
-test_triggers:
-  image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
+be_triggers:
   stage: triggers
-  script: echo 'test'
-
-# be_triggers:
-#   stage: triggers
-#   trigger:
-#     include: .gitlab/be.gitlab-ci.yml
-#     strategy: depend
-#   rules:
-#     - changes:
-#         - ruoyi-api/*
-#         - ruoyi-auth/*
-#         - ruoyi-common/*
-#         - ruoyi-gateway/*
-#         - ruoyi-modules/*
-#         - ruoyi-visual/*
-#         - docker/ruoyi/*
+  trigger:
+    include: .gitlab/be.gitlab-ci.yml
+    strategy: depend
+  rules:
+    - changes:
+        - ruoyi-api/*
+        - ruoyi-auth/*
+        - ruoyi-common/*
+        - ruoyi-gateway/*
+        - ruoyi-modules/*
+        - ruoyi-visual/*
+        - docker/ruoyi/*
   
-# fe_triggers:
-#   stage: triggers
-#   trigger:
-#     include: .gitlab/fe.gitlab-ci.yml
-#     strategy: depend
-#   rules:
-#     - changes:
-#         - ruoyi-ui/*
-#         - docker/nginx/*
+fe_triggers:
+  stage: triggers
+  trigger:
+    include: .gitlab/fe.gitlab-ci.yml
+    strategy: depend
+  rules:
+    - changes:
+        - ruoyi-ui/*
+        - docker/nginx/*
 
-# base_triggers:
-#   stage: triggers
-#   trigger:
-#     include: .gitlab/base.gitlab-ci.yml
-#     strategy: depend
-#   rules:
-#     - changes:
-#         - docker/mysql/*
-#         - sql/*
-
+base_triggers:
+  stage: triggers
+  trigger:
+    include: .gitlab/base.gitlab-ci.yml
+    strategy: depend
+  rules:
+    - changes:
+        - docker/mysql/*
+        - sql/*
