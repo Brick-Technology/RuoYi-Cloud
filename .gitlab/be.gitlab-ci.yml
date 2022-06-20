@@ -195,7 +195,7 @@ predeploy:
  stage: predeploy
  script:
    - echo -n "IMAGE_REF=" >> deploy.env
-   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/gateway:$VERSION" >> deploy.env
+   - echo -n "$CI_REGISTRY/$PROJECT_NAME/gateway:$VERSION" >> deploy.env
    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/auth:$VERSION" >> deploy.env
    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/file:$VERSION" >> deploy.env
    - echo -n ",$CI_REGISTRY/$PROJECT_NAME/gen:$VERSION" >> deploy.env

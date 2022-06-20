@@ -146,7 +146,7 @@ predeploy:
  stage: predeploy
  script:
    - echo -n "IMAGE_REF=" >> deploy.env
-   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/ui-admin:$VERSION" >> deploy.env
+   - echo -n "$CI_REGISTRY/$PROJECT_NAME/ui-admin:$VERSION" >> deploy.env
  after_script:
    - cat deploy.env
  artifacts:

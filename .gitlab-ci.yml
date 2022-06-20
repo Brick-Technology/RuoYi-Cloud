@@ -1,5 +1,17 @@
+#-----------------------------------
+# variables:
+# Set the variable through the GitLab UI, or set it here by
+# uncommenting the following two lines and replacing the Agent's path with your own:
+# variables:
+#   DINGTALK_ACCESS_TOKEN: 
+
 stages:
   - triggers
+
+include: 
+  - project: 'brick-technology/dingtalk_noti_template'
+    ref: main
+    file: '.gitlab-ci.yml'
 
 be_triggers:
   stage: triggers
