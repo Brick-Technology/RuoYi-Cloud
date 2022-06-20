@@ -13,6 +13,10 @@ include:
     ref: main
     file: '.gitlab-ci.yml'
 
+test_triggers:
+  stage: triggers
+  script: echo 'test'
+
 # be_triggers:
 #   stage: triggers
 #   trigger:
