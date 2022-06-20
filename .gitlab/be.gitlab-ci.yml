@@ -1,0 +1,214 @@
+#-----------------------------------
+# variables:
+# Set the variable through the GitLab UI, or set it here by
+# uncommenting the following two lines and replacing the Agent's path with your own:
+# variables:
+#   CI_REGISTRY_PROXY: 192.168.2.29:8443/proxy_cache/
+#   CA_CERTIFICATE:  【192.168.2.29的SSL证书】
+#   CI_REGISTRY: 192.168.2.29:8443
+#   CI_REGISTRY_USER: robot$$ruoyi-cloud+gitlab 【注意需要两个$,前一个$为转义字符】【harbor roboot的Name,需要先在harbor创建仓库后，再创建robot账号】
+#   CI_REGISTRY_PASSWORD:【harbor roboot的Secret】
+#   SONAR_HOST_URL:  http://192.168.2.28:9000/
+#   SONAR_TOKEN:【填入个人账号的token】
+#   NEXUS_REPO_USERNAME: 私有仓库账号
+#   NEXUS_REPO_PASSWORD: 私有仓库密码
+#   NEXUS_REPO_MAVEN_PUBLIC: http://192.168.2.28:8081/repository/maven-public/
+#   NEXUS_REPO_RELEASES_URL: http://192.168.2.28:8081/repository/maven-releases/
+#   NEXUS_REPO_SNAPSHOTS_URL: http://192.168.2.28:8081/repository/maven-snapshots/
+#   CVE_URL_MODIFIED: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-modified.json.gz
+#   CVE_URL_BASE: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz
+#   MANIFEST_PROJECT_ID: 【管理项目k8s yaml的项目编号，如 1】
+
+include:
+  - jobs/build.yml
+  - jobs/upload.yml
+  - jobs/deploy.yml
+
+variables:
+  LOCAL_M2_REPOS: .m2/repository
+  MAVEN_OPTS: "-Dmaven.repo.local=${LOCAL_M2_REPOS}"
+  SONAR_CACHE: .sonar/cache
+  #版本,docker image,jar
+  VERSION: $CI_COMMIT_SHORT_SHA
+  MAVEN_CMD_VERSION: -Dsha1=-$VERSION
+  PROJECT_NAME: ruoyi-cloud
+  #BE
+  SONAR_BE_PROJECT_KEY: ruoyi-be
+  #FE
+  SONAR_FE_PROJECT_KEY: ruoyi-fe
+  PROJECT_FE_DIR: ruoyi-ui
+  PROJECT_FE_DIR_SRC: ruoyi-ui/src
+  PROJECT_FE_DIR_DIST: ${PROJECT_FE_DIR}/dist
+  PROJECT_FE_DIR_NODE_MODULES: ${PROJECT_FE_DIR}/node_modules
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      variables:
+          VERSION: $CI_COMMIT_TAG
+          MAVEN_CMD_VERSION: -Drevision=$VERSION -Dchangelist=
+    - when: always
+
+stages:
+  # - .pre
+  #编译
+  - build
+  #测试
+  - test
+  #扫描
+  - scan
+  #打包
+  - package
+  #上传镜像
+  - upload
+  - predeploy
+  - deploy
+  # - .post
+
+build-be:
+  stage: build
+  tags:
+    # - build-tag
+    - cluster
+  image: ${CI_REGISTRY_PROXY}library/maven:3.8.5-openjdk-11-slim
+  # 执行脚本
+  script:
+    - echo "compile start"
+    - mvn -s settings.xml $MAVEN_CMD_VERSION clean compile
+    - pwd && ls -a
+    - echo "compile end"
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ${LOCAL_M2_REPOS}
+
+sonarqube-check-java:
+  image: ${CI_REGISTRY_PROXY}library/maven:3.8.5-openjdk-11-slim
+  tags:
+    # - main
+    - cluster
+  stage: scan
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ${SONAR_CACHE}
+  script:
+    - mvn -s settings.xml $MAVEN_CMD_VERSION package dependency-check:aggregate -Dsonar.projectName=${SONAR_BE_PROJECT_KEY} -Dsonar.projectKey=${SONAR_BE_PROJECT_KEY}
+    - mvn -s settings.xml $MAVEN_CMD_VERSION verify sonar:sonar -Dsonar.qualitygate.wait=true -Dsonar.projectName=${SONAR_BE_PROJECT_KEY} -Dsonar.projectKey=${SONAR_BE_PROJECT_KEY}
+  allow_failure: true
+  needs:
+    - job: "build-be"
+
+java-package:
+  variables:
+  image: ${CI_REGISTRY_PROXY}library/maven:3.8.5-openjdk-11-slim
+  # 执行阶段
+  stage: package
+  # 执行runner
+  tags:
+    - cluster
+  # 执行脚本
+  script:
+    - echo "package start"
+    - mvn -s settings.xml $MAVEN_CMD_VERSION package -Dmaven.test.skip=true
+    - pwd && ls -a
+    - echo "package start end"
+  artifacts:
+    # 生成的产物2小时后自动销毁
+    expire_in: 2 h
+    # 缓存作业产物
+    paths:
+      - "**/target/*.jar"
+  needs:
+    - job: "sonarqube-check-java"
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ${LOCAL_M2_REPOS}
+
+image-upload-gateway:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/gateway"
+    IMAGE_NAME: "$PROJECT_NAME/gateway"
+    MOVE_FILE_SCRIPT: "mv ruoyi-gateway/target/ruoyi-gateway.jar docker/ruoyi/gateway/jar/"
+
+image-upload-auth:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/auth"
+    IMAGE_NAME: "$PROJECT_NAME/auth"
+    MOVE_FILE_SCRIPT: "mv ruoyi-auth/target/ruoyi-auth.jar docker/ruoyi/auth/jar/"
+
+image-upload-file:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/modules/file"
+    IMAGE_NAME: "$PROJECT_NAME/file"
+    MOVE_FILE_SCRIPT: "mv ruoyi-modules/ruoyi-file/target/ruoyi-modules-file.jar docker/ruoyi/modules/file/jar/"
+
+image-upload-gen:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/modules/gen"
+    IMAGE_NAME: "$PROJECT_NAME/gen"
+    MOVE_FILE_SCRIPT: "mv ruoyi-modules/ruoyi-gen/target/ruoyi-modules-gen.jar docker/ruoyi/modules/gen/jar/"
+
+image-upload-job:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/modules/job"
+    IMAGE_NAME: "$PROJECT_NAME/job"
+    MOVE_FILE_SCRIPT: "mv ruoyi-modules/ruoyi-job/target/ruoyi-modules-job.jar docker/ruoyi/modules/job/jar/"
+
+image-upload-system:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/modules/system"
+    IMAGE_NAME: "$PROJECT_NAME/system"
+    MOVE_FILE_SCRIPT: "mv ruoyi-modules/ruoyi-system/target/ruoyi-modules-system.jar docker/ruoyi/modules/system/jar/"
+
+image-upload-monitor:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/ruoyi/visual/monitor"
+    IMAGE_NAME: "$PROJECT_NAME/monitor"
+    MOVE_FILE_SCRIPT: "mv ruoyi-visual/ruoyi-monitor/target/ruoyi-visual-monitor.jar docker/ruoyi/visual/monitor/jar/"
+
+jar-upload:
+  extends: .jar-upload
+  needs:
+  - job: "java-package"
+    artifacts: true
+  script:
+    - mvn -s settings.xml $MAVEN_CMD_VERSION --batch-mode deploy
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: on_success
+    - when: never
+
+predeploy:
+ image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
+ stage: predeploy
+ script:
+   - echo -n "IMAGE_REF=" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/gateway:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/auth:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/file:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/gen:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/job:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/system:$VERSION" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/monitor:$VERSION" >> deploy.env
+ after_script:
+   - cat deploy.env
+ artifacts:
+   reports:
+     dotenv: deploy.env
+ rules:
+ - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH =~ /^release/ || $CI_COMMIT_TAG'
+   when: on_success
+ - when: never
+

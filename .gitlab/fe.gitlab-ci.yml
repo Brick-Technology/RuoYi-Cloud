@@ -1,0 +1,159 @@
+#-----------------------------------
+# variables:
+# Set the variable through the GitLab UI, or set it here by
+# uncommenting the following two lines and replacing the Agent's path with your own:
+# variables:
+#   CI_REGISTRY_PROXY: 192.168.2.29:8443/proxy_cache/
+#   CA_CERTIFICATE:  【192.168.2.29的SSL证书】
+#   CI_REGISTRY: 192.168.2.29:8443
+#   CI_REGISTRY_USER: robot$$ruoyi-cloud+gitlab 【注意需要两个$,前一个$为转义字符】【harbor roboot的Name,需要先在harbor创建仓库后，再创建robot账号】
+#   CI_REGISTRY_PASSWORD:【harbor roboot的Secret】
+#   SONAR_HOST_URL:  http://192.168.2.28:9000/
+#   SONAR_TOKEN:【填入个人账号的token】
+#   NEXUS_REPO_USERNAME: 私有仓库账号
+#   NEXUS_REPO_PASSWORD: 私有仓库密码
+#   NEXUS_REPO_MAVEN_PUBLIC: http://192.168.2.28:8081/repository/maven-public/
+#   NEXUS_REPO_RELEASES_URL: http://192.168.2.28:8081/repository/maven-releases/
+#   NEXUS_REPO_SNAPSHOTS_URL: http://192.168.2.28:8081/repository/maven-snapshots/
+#   CVE_URL_MODIFIED: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-modified.json.gz
+#   CVE_URL_BASE: http://192.168.2.28:8081/repository/raw-cve/feeds/json/cve/1.1/nvdcve-1.1-%d.json.gz
+#   MANIFEST_PROJECT_ID: 【管理项目k8s yaml的项目编号，如 1】
+
+include:
+  - jobs/build.yml
+  - jobs/upload.yml
+  - jobs/deploy.yml
+
+variables:
+  LOCAL_M2_REPOS: .m2/repository
+  MAVEN_OPTS: "-Dmaven.repo.local=${LOCAL_M2_REPOS}"
+  SONAR_CACHE: .sonar/cache
+  #版本,docker image,jar
+  VERSION: $CI_COMMIT_SHORT_SHA
+  MAVEN_CMD_VERSION: -Dsha1=-$VERSION
+  PROJECT_NAME: ruoyi-cloud
+  #BE
+  SONAR_BE_PROJECT_KEY: ruoyi-be
+  #FE
+  SONAR_FE_PROJECT_KEY: ruoyi-fe
+  PROJECT_FE_DIR: ruoyi-ui
+  PROJECT_FE_DIR_SRC: ruoyi-ui/src
+  PROJECT_FE_DIR_DIST: ${PROJECT_FE_DIR}/dist
+  PROJECT_FE_DIR_NODE_MODULES: ${PROJECT_FE_DIR}/node_modules
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      variables:
+          VERSION: $CI_COMMIT_TAG
+          MAVEN_CMD_VERSION: -Drevision=$VERSION -Dchangelist=
+    - when: always
+
+stages:
+  # - .pre
+  #编译
+  - build
+  #测试
+  - test
+  #扫描
+  - scan
+  #打包
+  - package
+  #上传镜像
+  - upload
+  - predeploy
+  - deploy
+  # - .post
+
+build-fe:
+  stage: build
+  tags:
+    # - build-tag
+    - cluster
+  image: ${CI_REGISTRY_PROXY}library/node:12.22.12-bullseye-slim
+  # 执行脚本
+  script:
+    - echo "compile start"
+    - cd ${PROJECT_FE_DIR}
+    - pwd && ls -a
+    - yarn
+    - pwd && ls -a
+    - echo "compile end"
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - ${PROJECT_FE_DIR_NODE_MODULES}
+
+sonarqube-check-js:
+  tags:
+    # - main
+    - cluster
+  stage: scan
+  image:
+    name: ${CI_REGISTRY_PROXY}sonarsource/sonar-scanner-cli:4.7.0
+    entrypoint: [""]
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner -Dsonar.qualitygate.wait=true -Dsonar.projectName=${SONAR_FE_PROJECT_KEY} -Dsonar.projectKey=${SONAR_FE_PROJECT_KEY} -Dsonar.sources=${PROJECT_FE_DIR_SRC}
+  allow_failure: true
+  needs:
+    - job: "build-fe"
+
+npm-package:
+  variables:
+  image: ${CI_REGISTRY_PROXY}library/node:12.22.12-bullseye-slim
+  # 执行阶段
+  stage: package
+  # 执行runner
+  tags:
+    - cluster
+  # 执行脚本
+  script:
+    - echo "package start"
+    - cd ${PROJECT_FE_DIR}
+    - pwd && ls -a
+    - yarn
+    - yarn build:prod
+    - pwd && ls -a
+    - echo "package start end"
+  artifacts:
+    # 生成的产物2小时后自动销毁
+    expire_in: 2 h
+    # 缓存作业产物
+    paths:
+      - ${PROJECT_FE_DIR_DIST}
+  needs:
+    - job: "sonarqube-check-js"
+
+image-upload-ui-admin:
+  extends: .image-upload-service
+  variables:
+    CONTEXT_NAME: "docker/nginx"
+    IMAGE_NAME: "$PROJECT_NAME/ui-admin"
+    MOVE_FILE_SCRIPT: "mv ruoyi-ui/dist/* docker/nginx/html/dist"
+  needs:
+  - job: "npm-package"
+    artifacts: true
+
+predeploy:
+ image: ${CI_REGISTRY_PROXY}curlimages/curl:7.83.1
+ stage: predeploy
+ script:
+   - echo -n "IMAGE_REF=" >> deploy.env
+   - echo -n ",$CI_REGISTRY/$PROJECT_NAME/ui-admin:$VERSION" >> deploy.env
+ after_script:
+   - cat deploy.env
+ artifacts:
+   reports:
+     dotenv: deploy.env
+ rules:
+ - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH =~ /^release/ || $CI_COMMIT_TAG'
+   when: on_success
+ - when: never
+
