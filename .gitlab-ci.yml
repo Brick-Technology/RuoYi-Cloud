@@ -13,38 +13,38 @@ include:
     ref: main
     file: '.gitlab-ci.yml'
 
-be_triggers:
-  stage: triggers
-  trigger:
-    include: .gitlab/be.gitlab-ci.yml
-    strategy: depend
-  rules:
-    - changes:
-        - ruoyi-api/*
-        - ruoyi-auth/*
-        - ruoyi-common/*
-        - ruoyi-gateway/*
-        - ruoyi-modules/*
-        - ruoyi-visual/*
-        - docker/ruoyi/*
+# be_triggers:
+#   stage: triggers
+#   trigger:
+#     include: .gitlab/be.gitlab-ci.yml
+#     strategy: depend
+#   rules:
+#     - changes:
+#         - ruoyi-api/*
+#         - ruoyi-auth/*
+#         - ruoyi-common/*
+#         - ruoyi-gateway/*
+#         - ruoyi-modules/*
+#         - ruoyi-visual/*
+#         - docker/ruoyi/*
   
-fe_triggers:
-  stage: triggers
-  trigger:
-    include: .gitlab/fe.gitlab-ci.yml
-    strategy: depend
-  rules:
-    - changes:
-        - ruoyi-ui/*
-        - docker/nginx/*
+# fe_triggers:
+#   stage: triggers
+#   trigger:
+#     include: .gitlab/fe.gitlab-ci.yml
+#     strategy: depend
+#   rules:
+#     - changes:
+#         - ruoyi-ui/*
+#         - docker/nginx/*
 
-base_triggers:
-  stage: triggers
-  trigger:
-    include: .gitlab/base.gitlab-ci.yml
-    strategy: depend
-  rules:
-    - changes:
-        - docker/mysql/*
-        - sql/*
+# base_triggers:
+#   stage: triggers
+#   trigger:
+#     include: .gitlab/base.gitlab-ci.yml
+#     strategy: depend
+#   rules:
+#     - changes:
+#         - docker/mysql/*
+#         - sql/*
 
