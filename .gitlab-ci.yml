@@ -29,7 +29,7 @@ fe_triggers:
 base_triggers:
   stage: triggers
   trigger:
-    include: .gitlab/fe.gitlab-ci.yml
+    include: .gitlab/base.gitlab-ci.yml
     strategy: depend
   rules:
     - changes:
