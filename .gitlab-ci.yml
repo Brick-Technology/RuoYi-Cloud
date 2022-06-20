@@ -3,7 +3,7 @@
 # Set the variable through the GitLab UI, or set it here by
 # uncommenting the following two lines and replacing the Agent's path with your own:
 variables:
-  DINGTALK_ACCESS_TOKEN: 1
+  DINGTALK_ACCESS_TOKEN: $DINGTALK_ACCESS_TOKEN
 
 stages:
   - triggers
