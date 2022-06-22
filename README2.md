@@ -104,4 +104,28 @@ spring:
    }
    ```
 
-   
+### 前端开发环境微服务请求带上header version的解决方案
+
+设置`vue.config.js`里的devServer.proxy.headers即可，如
+
+```js
+...
+module.exports = {
+...
+  devServer: {
+...
+    proxy: {
+      // detail: https://cli.vuejs.org/config/#devserver-proxy
+      [process.env.VUE_APP_BASE_API]: {
+...
+        headers:{
+          'version':'1.0.0'
+        },
+      }
+    },
+...
+  },
+...
+}
+```
+
