@@ -1,0 +1,37 @@
+@url = http://localhost:9200
+
+@url_dev = http://localhost:9200
+
+# @url_dev_gateway = http://192.168.2.30:31011
+
+@url_dev_gateway = http://localhost:8080
+
+### 登入 - 无version
+POST {{url_dev_gateway}}/auth/login HTTP/1.1
+content-type: application/json
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### 登入 - version:1.0.0
+POST {{url_dev_gateway}}/auth/login HTTP/1.1
+content-type: application/json
+version: 1.0.0
+
+{
+  "username": "admin",
+  "password": "admin123"
+}
+
+### 登入 - version:1.0.1
+POST {{url_dev_gateway}}/auth/login HTTP/1.1
+content-type: application/json
+Authorization: token xxx
+version: 1.0.1
+
+{
+  "username": "admin",
+  "password": "admin123"
+}

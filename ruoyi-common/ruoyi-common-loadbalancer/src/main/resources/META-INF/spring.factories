@@ -1,0 +1,4 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.ruoyi.common.loadbalance.config.CustomLoadBalanceAutoConfiguration,\
+  com.ruoyi.common.loadbalance.config.FeignRequestInterceptor
+
