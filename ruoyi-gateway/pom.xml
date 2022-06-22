@@ -88,6 +88,12 @@
             <version>${swagger.fox.version}</version>
         </dependency>
 
+        <!--自定义负载均衡(多团队开发使用)-->
+        <dependency>
+            <groupId>com.ruoyi</groupId>
+            <artifactId>ruoyi-common-loadbalancer</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

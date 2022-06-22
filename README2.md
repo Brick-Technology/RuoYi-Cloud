@@ -28,7 +28,7 @@
 TODO
 
 ## 团队协作开发
-1. 项目已自动引入`ruoyi-common-loadbalancer`模块，引入代码在pom.xml
+1. 项目引入`ruoyi-common-loadbalancer`模块，如
 
    > 关键实现代码在：ruoyi-common/ruoyi-common-loadbalancer/src/main/java/com/ruoyi/common/loadbalance/core/CustomSpringCloudLoadBalancer.java
 
